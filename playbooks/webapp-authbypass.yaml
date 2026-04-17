@@ -1,0 +1,59 @@
+name: Web App Auth Bypass
+description: JWT, IDOR, and SSO bypass chain for web application engagements
+author:
+  name: Decepticon Team
+  github: PurpleAILAB
+version: 1.0.0
+tags: [web, auth, jwt, idor, sso]
+
+variables:
+  target_domain:
+    type: string
+    required: true
+  auth_endpoint:
+    type: string
+    default: /api/auth/login
+
+phases:
+  - name: auth_surface
+    agents: [recon]
+    tools:
+      - name: katana
+        options: { depth: 3 }
+      - name: httpx
+        options: { probe_all_ips: true }
+    post_analysis: |
+      Map every auth surface on ${target_domain}: login, refresh, OAuth,
+      SAML, OIDC, SSO redirect targets. Capture JWT samples.
+
+  - name: jwt_attacks
+    agents: [exploit]
+    depends_on: [auth_surface]
+    tools:
+      - name: nuclei
+        options: { templates: ["http/vulnerabilities/generic/jwt-", "http/misconfiguration/jwt-"] }
+      - name: jwt_tool
+        command: "jwt_tool -t https://${target_domain}${auth_endpoint} -M at"
+    post_analysis: |
+      Test alg=none, key confusion, weak HMAC secrets, JKU/KID injection,
+      embedded JWK, and expired-signature reuse.
+
+  - name: idor_hunt
+    agents: [exploit]
+    depends_on: [auth_surface]
+    tools:
+      - name: ffuf
+        command: "ffuf -u https://${target_domain}/api/users/FUZZ -w ids.txt -mc 200"
+    post_analysis: |
+      Enumerate sequential / UUID / GUID IDs across ownership boundaries.
+      Horizontal and vertical privilege escalation checks.
+
+  - name: sso_bypass
+    agents: [exploit]
+    depends_on: [auth_surface]
+    tools:
+      - name: samlraider
+        command: "samlraider --url https://${target_domain}${auth_endpoint}"
+    post_analysis: |
+      SAML signature-wrapping, XSW, assertion replay, Golden SAML,
+      OIDC redirect_uri confusion, state-parameter bypass.

@@ -48,6 +48,13 @@ dependencies = [
     "defusedxml>=0.7.0",
     # Graph memory (Neo4j attack-chain graph)
     "neo4j>=5.0",
+    # PSA-migrated features
+    "mcp>=1.0.0",
+    "jsonschema>=4.0.0",
+    "tabulate>=0.9.0",
+    "watchdog>=4.0.0",
+    "aiosqlite>=0.20.0",
+    "click>=8.1.0",
 ]
 
 [dependency-groups]
@@ -62,6 +69,10 @@ dev = [
 [project.scripts]
 decepticon = "decepticon.__main__:main"
 decepticon-kg-health = "decepticon.tools.research.health:main"
+decepticon-doctor = "decepticon.cli:doctor_main"
+decepticon-explain = "decepticon.cli:explain_main"
+decepticon-mcp = "decepticon.mcp.server:main"
+decepticon-asm = "decepticon.asm.watcher:main"
 
 [project.urls]
 Homepage = "https://github.com/PurpleAILAB/Decepticon"

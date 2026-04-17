@@ -290,6 +290,13 @@ For architecture details and contribution guidelines, visit the [documentation](
 
 Join the [Discord](https://discord.gg/TZUYsZgrRG) — ask questions, share engagement logs, discuss techniques, or just connect with others who believe defense starts with understanding offense.
 
+## PSA-Migrated Features
+
+Decepticon ships with features ported from [Pentest-Swarm-AI](https://github.com/Armur-Ai/Pentest-Swarm-AI):
+CVSS 4.0 scoring, YAML playbooks, ASM mode, bug bounty scope importer, MCP server, enterprise integrations (Jira/Slack/SIEM/SARIF/webhook), plugin system, CTF adapters, pattern memory, emergency stop/cleanup registry.
+
+See [docs/psa-migration.md](docs/psa-migration.md) for the full migration catalog.
+
 ## License
 
 [Apache-2.0](LICENSE)

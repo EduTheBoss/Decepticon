@@ -1,0 +1,42 @@
+name: API Security Assessment
+description: REST / GraphQL API focused assessment (OWASP API Top 10)
+author:
+  name: Decepticon Team
+  github: PurpleAILAB
+version: 1.1.0
+tags: [api, rest, graphql]
+
+variables:
+  target_domain:
+    type: string
+    required: true
+  api_base_path:
+    type: string
+    default: /api
+
+phases:
+  - name: api_discovery
+    agents: [recon]
+    tools:
+      - name: katana
+        options: { depth: 5, js_crawl: true }
+      - name: gau
+      - name: httpx
+        options: { follow_redirects: true }
+    post_analysis: |
+      Discover all API endpoints on ${target_domain}${api_base_path}.
+      Look for OpenAPI/Swagger, GraphQL introspection, versioned APIs,
+      and undocumented endpoints in JS bundles.
+
+  - name: api_vulnerabilities
+    agents: [exploit]
+    depends_on: [api_discovery]
+    tools:
+      - name: nuclei
+        options:
+          templates: ["http/vulnerabilities/", "http/misconfiguration/"]
+          severity: [critical, high, medium]
+    post_analysis: |
+      Test for broken auth, BOLA/IDOR, mass assignment, rate-limit bypass,
+      JWT flaws, SSRF via API parameters, GraphQL injection, excessive
+      data exposure.

