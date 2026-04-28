@@ -311,7 +311,18 @@ def create_orchestrator():
     """
     from decepticon.agents.soundwave import create_soundwave_agent
 
-    soundwave = create_soundwave_agent()
+    # Wrap soundwave with StreamingRunnable so its AI messages and tool calls
+    # emit `subagent_*` custom events during execution. Without this wrapping,
+    # soundwave runs as a raw subgraph node — LangGraph doesn't propagate the
+    # subgraph's intermediate state to the top-level `values` stream, so the
+    # CLI sees nothing until soundwave completes (output appears all at once)
+    # and the active-agent indicator stays on the orchestrator's default
+    # ("decepticon") instead of switching to "soundwave".
+    #
+    # The orchestrator-level decepticon agent is left raw — its own AI text
+    # is short orchestration scaffolding; the user-visible streaming comes
+    # from its sub-agents (recon/exploit/...) which are already wrapped.
+    soundwave = StreamingRunnable(create_soundwave_agent(), "soundwave")
     decepticon = create_decepticon_agent()
 
     builder = StateGraph(OrchestratorState)
