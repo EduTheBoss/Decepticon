@@ -145,15 +145,28 @@ create_launcher() {
 
     local binary_name="decepticon-${os}-${arch}"
 
+    # When the fork has no releases, fall back to the upstream launcher binary.
+    # The launcher is a generic Docker Compose wrapper — fork-specific changes
+    # live in Python/config files downloaded separately, not in the binary.
+    local download_repo="$REPO"
+    local download_version="$DECEPTICON_VERSION"
     if [[ "$DECEPTICON_VERSION" == "latest" ]]; then
-        error "Could not resolve a release version automatically."
-        error "Set VERSION explicitly with a tag from:"
-        error "  https://github.com/$REPO/releases"
-        error "Example: VERSION=<x.y.z> curl -fsSL https://decepticon.red/install | bash"
-        exit 1
+        info "No releases in $REPO — fetching launcher from upstream release..."
+        local upstream_version
+        upstream_version=$(curl -s "https://api.github.com/repos/PurpleAILAB/Decepticon/releases/latest" \
+            | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
+        if [[ -z "$upstream_version" ]]; then
+            error "Could not resolve an upstream release version."
+            error "Either publish a release on https://github.com/$REPO/releases"
+            error "or set VERSION explicitly: VERSION=<x.y.z> curl -fsSL ... | bash"
+            exit 1
+        fi
+        download_repo="PurpleAILAB/Decepticon"
+        download_version="$upstream_version"
+        info "Using upstream launcher v${download_version}"
     fi
 
-    local download_url="https://github.com/$REPO/releases/download/v${DECEPTICON_VERSION}/${binary_name}"
+    local download_url="https://github.com/$download_repo/releases/download/v${download_version}/${binary_name}"
     info "Downloading launcher binary ($binary_name)..."
     if ! curl -fsSL "$download_url" -o "$bin_dir/decepticon" 2>/dev/null; then
         error "No launcher binary for ${os}/${arch} in v${DECEPTICON_VERSION}."
