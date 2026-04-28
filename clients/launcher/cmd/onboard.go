@@ -68,7 +68,7 @@ func runOnboard(cmd *cobra.Command, args []string) error {
 					if authMethod == "auth" {
 						return []huh.Option[string]{
 							huh.NewOption("Claude Code  — Anthropic OAuth", "claude-code"),
-							huh.NewOption("Codex        — coming soon", "codex"),
+							huh.NewOption("Codex        — ChatGPT Plus/Pro subscription", "codex"),
 						}
 					}
 					return []huh.Option[string]{
@@ -175,9 +175,14 @@ func runOnboard(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build values map
+	// codex is a distinct provider (not "auth") — override if selected
+	modelProvider := authMethod
+	if llmProvider == "codex" {
+		modelProvider = "codex"
+	}
 	values := map[string]string{
 		"DECEPTICON_MODEL_PROFILE":  profile,
-		"DECEPTICON_MODEL_PROVIDER": authMethod,
+		"DECEPTICON_MODEL_PROVIDER": modelProvider,
 	}
 
 	if authMethod == "api" && apiKey != "" {
@@ -219,5 +224,9 @@ func runOnboard(cmd *cobra.Command, args []string) error {
 	fmt.Println(ui.Dim.Render("  └──────────────────────────────────┘"))
 	fmt.Println()
 	ui.DimText("  Run 'decepticon' to start the platform")
+	if llmProvider == "codex" {
+		fmt.Println()
+		ui.DimText("  Run 'codex login' once to authenticate with your ChatGPT account.")
+	}
 	return nil
 }

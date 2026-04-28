@@ -79,6 +79,15 @@ model_list:
     litellm_params:
       model: auth/claude-haiku-4-5
 
+  # ── Codex OAuth (ChatGPT Plus/Pro subscription) ───────────────────
+  - model_name: codex/gpt-4.1
+    litellm_params:
+      model: codex/gpt-4.1
+
+  - model_name: codex/gpt-5.4
+    litellm_params:
+      model: codex/gpt-5.4
+
   # ── Local LLM (Ollama) ──────────────────────────────────────────────
   - model_name: ollama/llama3.2
     litellm_params:
@@ -90,6 +99,8 @@ litellm_settings:
   custom_provider_map:
     - provider: "auth"
       custom_handler: claude_code_handler.claude_code_handler_instance
+    - provider: "codex"
+      custom_handler: codex_handler.codex_handler_instance
 
 # --- Router Settings ---
 router_settings:

@@ -65,12 +65,14 @@ class ModelProfile(StrEnum):
 class ModelProvider(StrEnum):
     """Authentication provider for LLM requests.
 
-    api  — API keys via x-api-key header (default)
-    auth — Claude Code OAuth subscription via Bearer token, no API cost
+    api   — API keys via x-api-key header (default)
+    auth  — Claude Code OAuth subscription via Bearer token, no API cost
+    codex — Codex (ChatGPT) OAuth subscription via Bearer token, no API cost
     """
 
     API = "api"
     AUTH = "auth"
+    CODEX = "codex"
 
 
 # ── Model constants ──────────────────────────────────────────────────────
@@ -79,6 +81,8 @@ SONNET = "anthropic/claude-sonnet-4-6"
 HAIKU = "anthropic/claude-haiku-4-5"
 GPT_5 = "openai/gpt-5.4"
 GPT_4 = "openai/gpt-4.1"
+GPT_5_CODEX = "codex/gpt-5.4"
+GPT_4_CODEX = "codex/gpt-4.1"
 GEMINI_FLASH = "gemini/gemini-2.5-flash"
 MINIMAX = "minimax/MiniMax-M2.7"
 MINIMAX_HIGHSPEED = "minimax/MiniMax-M2.7-highspeed"
@@ -357,15 +361,16 @@ class LLMModelMapping(BaseModel):
         raise ValueError(f"Unknown profile: {profile}")  # type: ignore[unreachable]
 
     def with_provider(self, provider: ModelProvider | str) -> "LLMModelMapping":
-        """Return a new mapping with primary models remapped for the given provider.
+        """Return a new mapping with models remapped for the given provider.
 
         ModelProvider.AUTH  — remap ``anthropic/*`` primaries to ``auth/*``
                               so they route through the Claude Code OAuth handler.
-                              Fallbacks are kept on the API provider as a paid
+                              Fallbacks stay on the api provider as a paid
                               safety net when the subscription hits limits.
+        ModelProvider.CODEX — remap all ``openai/*`` models (primary + fallback)
+                              to ``codex/*`` so ChatGPT subscription tokens are
+                              used wherever OpenAI is referenced.
         ModelProvider.API   — no-op, returns self unchanged.
-
-        Only ``anthropic/`` primaries are remapped; GPT/Gemini/etc. are left as-is.
         """
         provider = ModelProvider(provider)
         if provider == ModelProvider.API:
@@ -373,12 +378,18 @@ class LLMModelMapping(BaseModel):
 
         def _remap(assignment: ModelAssignment) -> ModelAssignment:
             primary = assignment.primary
-            if primary.startswith("anthropic/"):
-                model_id = primary.split("/", 1)[1]
-                primary = f"auth/{model_id}"
+            fallback = assignment.fallback
+            if provider == ModelProvider.AUTH:
+                if primary.startswith("anthropic/"):
+                    primary = "auth/" + primary.split("/", 1)[1]
+            elif provider == ModelProvider.CODEX:
+                if primary.startswith("openai/"):
+                    primary = "codex/" + primary.split("/", 1)[1]
+                if fallback and fallback.startswith("openai/"):
+                    fallback = "codex/" + fallback.split("/", 1)[1]
             return ModelAssignment(
                 primary=primary,
-                fallback=assignment.fallback,
+                fallback=fallback,
                 temperature=assignment.temperature,
                 max_tokens=assignment.max_tokens,
             )
