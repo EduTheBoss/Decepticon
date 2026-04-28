@@ -2,7 +2,7 @@ services:
   # LiteLLM Proxy — LLM API Gateway
   # Handles model routing, authentication, usage tracking, billing
   litellm:
-    image: ghcr.io/edutheboss/decepticon-litellm:${DECEPTICON_VERSION:-latest}
+    image: ghcr.io/purpleailab/decepticon-litellm:${DECEPTICON_VERSION:-latest}
     build:
       context: .
       dockerfile: containers/litellm.Dockerfile
@@ -104,7 +104,7 @@ services:
   # Runs on sandbox-net only — NO access to infra (litellm, postgres, langgraph).
   # LangGraph reaches sandbox via docker exec (Docker socket), not the network.
   sandbox:
-    image: ghcr.io/edutheboss/decepticon-sandbox:${DECEPTICON_VERSION:-latest}
+    image: ghcr.io/purpleailab/decepticon-sandbox:${DECEPTICON_VERSION:-latest}
     build:
       context: .
       dockerfile: containers/sandbox.Dockerfile
@@ -133,7 +133,7 @@ services:
   # Exposes all agents (decepticon, soundwave, recon, exploit, postexploit)
   # as a streaming API on port 2024. Ink CLI connects here.
   langgraph:
-    image: ghcr.io/edutheboss/decepticon-langgraph:${DECEPTICON_VERSION:-latest}
+    image: ghcr.io/purpleailab/decepticon-langgraph:${DECEPTICON_VERSION:-latest}
     build:
       context: .
       dockerfile: containers/langgraph.Dockerfile
@@ -178,7 +178,7 @@ services:
   # Web Dashboard — Next.js UI
   # Migrations run automatically at startup via web-entrypoint.sh (prisma migrate deploy).
   web:
-    image: ghcr.io/edutheboss/decepticon-web:${DECEPTICON_VERSION:-latest}
+    image: ghcr.io/purpleailab/decepticon-web:${DECEPTICON_VERSION:-latest}
     build:
       context: .
       dockerfile: containers/web.Dockerfile
@@ -218,7 +218,7 @@ services:
   # Ink CLI — Interactive terminal UI
   # Runs via: docker compose run --rm cli
   cli:
-    image: ghcr.io/edutheboss/decepticon-cli:${DECEPTICON_VERSION:-latest}
+    image: ghcr.io/purpleailab/decepticon-cli:${DECEPTICON_VERSION:-latest}
     build:
       context: .
       dockerfile: containers/cli.Dockerfile
@@ -244,7 +244,7 @@ services:
   # Swap: change COMPOSE_PROFILES to c2-havoc, etc.
   # Agent connects via: sliver-client (pre-installed in sandbox)
   c2-sliver:
-    image: ghcr.io/edutheboss/decepticon-c2-sliver:${DECEPTICON_VERSION:-latest}
+    image: ghcr.io/purpleailab/decepticon-c2-sliver:${DECEPTICON_VERSION:-latest}
     build:
       context: .
       dockerfile: containers/c2-sliver.Dockerfile
