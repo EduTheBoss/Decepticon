@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # ── Constants ─────────────────────────────────────────────────────
-REPO="PurpleAILAB/Decepticon"
+REPO="EduTheBoss/Decepticon"
 BRANCH="${BRANCH:-main}"
 RAW_BASE="https://raw.githubusercontent.com/$REPO/$BRANCH"
 
