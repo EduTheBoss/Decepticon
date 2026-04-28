@@ -376,6 +376,13 @@ class LLMModelMapping(BaseModel):
         if provider == ModelProvider.API:
             return self
 
+        # Anthropic → codex model equivalents (tier-matched)
+        _ANTHROPIC_TO_CODEX: dict[str, str] = {
+            OPUS:   GPT_5_CODEX,
+            SONNET: GPT_4_CODEX,
+            HAIKU:  GPT_4_CODEX,
+        }
+
         def _remap(assignment: ModelAssignment) -> ModelAssignment:
             primary = assignment.primary
             fallback = assignment.fallback
@@ -383,10 +390,14 @@ class LLMModelMapping(BaseModel):
                 if primary.startswith("anthropic/"):
                     primary = "auth/" + primary.split("/", 1)[1]
             elif provider == ModelProvider.CODEX:
+                # Remap anthropic/* to nearest codex tier equivalent
+                primary = _ANTHROPIC_TO_CODEX.get(primary, primary)
                 if primary.startswith("openai/"):
                     primary = "codex/" + primary.split("/", 1)[1]
-                if fallback and fallback.startswith("openai/"):
-                    fallback = "codex/" + fallback.split("/", 1)[1]
+                if fallback:
+                    fallback = _ANTHROPIC_TO_CODEX.get(fallback, fallback)
+                    if fallback.startswith("openai/"):
+                        fallback = "codex/" + fallback.split("/", 1)[1]
             return ModelAssignment(
                 primary=primary,
                 fallback=fallback,

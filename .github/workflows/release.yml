@@ -92,8 +92,8 @@ jobs:
           provenance: mode=max
           sbom: true
           tags: |
-            ghcr.io/purpleailab/${{ matrix.image }}:${{ steps.version.outputs.version }}
-            ghcr.io/purpleailab/${{ matrix.image }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -103,12 +103,12 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           cosign sign --yes \
-            "ghcr.io/purpleailab/${{ matrix.image }}@${DIGEST}"
+            "ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}@${DIGEST}"
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@v0
         with:
-          image: ghcr.io/purpleailab/${{ matrix.image }}:${{ steps.version.outputs.version }}
+          image: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.version.outputs.version }}
           format: cyclonedx-json
           output-file: sbom-${{ matrix.image }}.cdx.json
 
@@ -120,7 +120,7 @@ jobs:
           cosign attest --yes \
             --predicate sbom-${{ matrix.image }}.cdx.json \
             --type cyclonedx \
-            "ghcr.io/purpleailab/${{ matrix.image }}@${DIGEST}"
+            "ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}@${DIGEST}"
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
@@ -168,7 +168,7 @@ jobs:
           platforms: linux/${{ matrix.platform }}
           provenance: mode=max
           sbom: true
-          outputs: type=image,name=ghcr.io/purpleailab/decepticon-web,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=ghcr.io/${{ github.repository_owner }}/decepticon-web,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=web-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=web-${{ matrix.platform }}
 
@@ -220,11 +220,11 @@ jobs:
         working-directory: ${{ runner.temp }}/digests
         run: |
           docker buildx imagetools create \
-            --tag ghcr.io/purpleailab/decepticon-web:${{ steps.version.outputs.version }} \
-            --tag ghcr.io/purpleailab/decepticon-web:latest \
-            $(printf 'ghcr.io/purpleailab/decepticon-web@sha256:%s ' *)
+            --tag ghcr.io/${{ github.repository_owner }}/decepticon-web:${{ steps.version.outputs.version }} \
+            --tag ghcr.io/${{ github.repository_owner }}/decepticon-web:latest \
+            $(printf 'ghcr.io/${{ github.repository_owner }}/decepticon-web@sha256:%s ' *)
           digest=$(docker buildx imagetools inspect \
-            ghcr.io/purpleailab/decepticon-web:${{ steps.version.outputs.version }} \
+            ghcr.io/${{ github.repository_owner }}/decepticon-web:${{ steps.version.outputs.version }} \
             --format '{{json .Manifest}}' | jq -r '.digest')
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
@@ -234,12 +234,12 @@ jobs:
           DIGEST: ${{ steps.manifest.outputs.digest }}
         run: |
           cosign sign --yes \
-            "ghcr.io/purpleailab/decepticon-web@${DIGEST}"
+            "ghcr.io/${{ github.repository_owner }}/decepticon-web@${DIGEST}"
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@v0
         with:
-          image: ghcr.io/purpleailab/decepticon-web:${{ steps.version.outputs.version }}
+          image: ghcr.io/${{ github.repository_owner }}/decepticon-web:${{ steps.version.outputs.version }}
           format: cyclonedx-json
           output-file: sbom-decepticon-web.cdx.json
 
@@ -251,7 +251,7 @@ jobs:
           cosign attest --yes \
             --predicate sbom-decepticon-web.cdx.json \
             --type cyclonedx \
-            "ghcr.io/purpleailab/decepticon-web@${DIGEST}"
+            "ghcr.io/${{ github.repository_owner }}/decepticon-web@${DIGEST}"
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4

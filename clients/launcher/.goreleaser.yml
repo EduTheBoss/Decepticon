@@ -33,7 +33,7 @@ checksum:
 
 release:
   github:
-    owner: PurpleAILAB
+    owner: EduTheBoss
     name: Decepticon
   draft: false
   prerelease: auto
