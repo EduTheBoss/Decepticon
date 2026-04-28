@@ -10,7 +10,7 @@ services:
     volumes:
       - ./config/litellm.yaml:/app/config.yaml:ro
       - ${HOME}/.claude/.credentials.json:/root/.claude/.credentials.json:ro
-      - ${HOME}/.codex/auth.json:/root/.codex/auth.json:ro
+      - ${HOME}/.codex:/root/.codex:ro
     entrypoint: ["python", "/app/litellm_startup.py"]
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     ports:

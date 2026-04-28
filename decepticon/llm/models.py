@@ -378,9 +378,11 @@ class LLMModelMapping(BaseModel):
 
         # Anthropic → codex model equivalents (tier-matched)
         _ANTHROPIC_TO_CODEX: dict[str, str] = {
-            OPUS:   GPT_5_CODEX,
-            SONNET: GPT_4_CODEX,
-            HAIKU:  GPT_4_CODEX,
+            OPUS:         GPT_5_CODEX,
+            SONNET:       GPT_4_CODEX,
+            HAIKU:        GPT_4_CODEX,
+            # Gemini fallbacks also redirect to codex when no Gemini key available
+            GEMINI_FLASH: GPT_4_CODEX,
         }
 
         def _remap(assignment: ModelAssignment) -> ModelAssignment:
@@ -390,7 +392,7 @@ class LLMModelMapping(BaseModel):
                 if primary.startswith("anthropic/"):
                     primary = "auth/" + primary.split("/", 1)[1]
             elif provider == ModelProvider.CODEX:
-                # Remap anthropic/* to nearest codex tier equivalent
+                # Remap anthropic/* and gemini/* to nearest codex tier equivalent
                 primary = _ANTHROPIC_TO_CODEX.get(primary, primary)
                 if primary.startswith("openai/"):
                     primary = "codex/" + primary.split("/", 1)[1]

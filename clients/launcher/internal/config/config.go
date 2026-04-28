@@ -295,12 +295,16 @@ func validateCodexCredentials() error {
 		return fmt.Errorf("no access_token found in %s\nRun 'codex login' to re-authenticate.", path)
 	}
 
-	// Create empty Claude credentials sentinel so Docker's bind-mount doesn't
-	// fail or create a directory at ~/.claude/.credentials.json on this machine.
+	// Create a Claude credentials sentinel so Docker's bind-mount doesn't fail
+	// or create a directory at ~/.claude/.credentials.json on this machine.
+	// The sentinel carries a placeholder accessToken so older launcher binaries
+	// (which call validateClaudeCredentials() for any 'auth' provider) don't
+	// reject the file as having "no access token".
 	claudePath := filepath.Join(home, ".claude", ".credentials.json")
 	if _, err := os.Stat(claudePath); os.IsNotExist(err) {
 		_ = os.MkdirAll(filepath.Dir(claudePath), 0o700)
-		_ = os.WriteFile(claudePath, []byte("{}\n"), 0o600)
+		sentinel := []byte(`{"claudeAiOauth":{"accessToken":"codex-provider-active"}}` + "\n")
+		_ = os.WriteFile(claudePath, sentinel, 0o600)
 	}
 	return nil
 }

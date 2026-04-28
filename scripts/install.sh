@@ -115,6 +115,15 @@ download_files() {
     mkdir -p "$install_dir/config"
     curl -fsSL "$RAW_BASE/config/litellm.yaml" -o "$install_dir/config/litellm.yaml"
 
+    # LiteLLM custom handlers (needed to build the litellm image locally)
+    curl -fsSL "$RAW_BASE/config/claude_code_handler.py" -o "$install_dir/config/claude_code_handler.py"
+    curl -fsSL "$RAW_BASE/config/codex_handler.py"        -o "$install_dir/config/codex_handler.py"
+    curl -fsSL "$RAW_BASE/config/litellm_startup.py"     -o "$install_dir/config/litellm_startup.py"
+
+    # Dockerfile for litellm (used by docker compose build)
+    mkdir -p "$install_dir/containers"
+    curl -fsSL "$RAW_BASE/containers/litellm.Dockerfile" -o "$install_dir/containers/litellm.Dockerfile"
+
     # Workspace directory (bind-mounted into containers)
     mkdir -p "$install_dir/workspace"
 
@@ -283,6 +292,15 @@ pull_images() {
     (cd "$install_dir" && docker compose --env-file .env --profile cli pull) || {
         warn "Warning: Failed to pull some images."
         info "You can pull them manually later: decepticon update"
+    }
+
+    # Build litellm locally so the custom codex/claude handlers are baked in.
+    # The upstream image does NOT include these handlers.
+    echo ""
+    info "Building litellm image with custom handlers..."
+    (cd "$install_dir" && docker compose build litellm) || {
+        warn "Warning: Failed to build litellm image."
+        info "You can build it manually later: cd ~/.decepticon && docker compose build litellm"
     }
 }
 
