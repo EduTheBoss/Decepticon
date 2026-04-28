@@ -211,8 +211,9 @@ func ValidateAPIKeys(env map[string]string) error {
 }
 
 // ValidateAuth ensures authentication is configured for the chosen provider mode.
-// "api" mode → at least one well-formed API key must be set.
-// "auth" mode → Claude Code credentials file must exist (LiteLLM mounts it read-only).
+// "api"   mode → at least one well-formed API key must be set.
+// "auth"  mode → Claude Code credentials file must exist (LiteLLM mounts it read-only).
+// "codex" mode → Codex auth.json must exist with a valid access token.
 func ValidateAuth(env map[string]string) error {
 	mode := Get(env, "DECEPTICON_MODEL_PROVIDER", "api")
 	switch mode {
@@ -220,8 +221,10 @@ func ValidateAuth(env map[string]string) error {
 		return ValidateAPIKeys(env)
 	case "auth":
 		return validateClaudeCredentials()
+	case "codex":
+		return validateCodexCredentials()
 	default:
-		return fmt.Errorf("unknown DECEPTICON_MODEL_PROVIDER: %q (expected 'api' or 'auth')", mode)
+		return fmt.Errorf("unknown DECEPTICON_MODEL_PROVIDER: %q (expected 'api', 'auth', or 'codex')", mode)
 	}
 }
 
@@ -257,6 +260,47 @@ func validateClaudeCredentials() error {
 	}
 	if extractClaudeAccessToken(creds) == "" {
 		return fmt.Errorf("no access token found in %s\nRun 'claude /login' to re-authenticate.", path)
+	}
+	return nil
+}
+
+// validateCodexCredentials verifies ~/.codex/auth.json exists, parses as JSON, and
+// carries a non-empty access token under tokens.access_token.
+// It also creates an empty ~/.claude/.credentials.json sentinel (as `{}`) so Docker's
+// bind-mount for the Claude handler doesn't fail on a codex-only machine.
+func validateCodexCredentials() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("locate home directory: %w", err)
+	}
+	path := filepath.Join(home, ".codex", "auth.json")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("Codex credentials not found at %s\nRun 'codex login' to authenticate, then retry.", path)
+	} else if err != nil {
+		return fmt.Errorf("stat %s: %w", path, err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", path, err)
+	}
+	var creds map[string]any
+	if err := json.Unmarshal(raw, &creds); err != nil {
+		return fmt.Errorf("auth.json at %s is not valid JSON: %w\nRun 'codex login' to re-authenticate.", path, err)
+	}
+	tokens, _ := creds["tokens"].(map[string]any)
+	if tokens == nil {
+		return fmt.Errorf("no tokens found in %s\nRun 'codex login' to re-authenticate.", path)
+	}
+	if tok, _ := tokens["access_token"].(string); tok == "" {
+		return fmt.Errorf("no access_token found in %s\nRun 'codex login' to re-authenticate.", path)
+	}
+
+	// Create empty Claude credentials sentinel so Docker's bind-mount doesn't
+	// fail or create a directory at ~/.claude/.credentials.json on this machine.
+	claudePath := filepath.Join(home, ".claude", ".credentials.json")
+	if _, err := os.Stat(claudePath); os.IsNotExist(err) {
+		_ = os.MkdirAll(filepath.Dir(claudePath), 0o700)
+		_ = os.WriteFile(claudePath, []byte("{}\n"), 0o600)
 	}
 	return nil
 }
